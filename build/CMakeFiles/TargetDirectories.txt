@@ -1,0 +1,3 @@
+/home/dylan/Documents/Repos/BulletHell/build/CMakeFiles/MySDLApp.dir
+/home/dylan/Documents/Repos/BulletHell/build/CMakeFiles/edit_cache.dir
+/home/dylan/Documents/Repos/BulletHell/build/CMakeFiles/rebuild_cache.dir

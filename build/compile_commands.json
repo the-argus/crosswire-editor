@@ -1,0 +1,32 @@
+[
+{
+  "directory": "/home/dylan/Documents/Repos/BulletHell/build",
+  "command": "/usr/bin/g++ -isystem /usr/include/SDL2 -g -o CMakeFiles/MySDLApp.dir/src/main.cpp.o -c /home/dylan/Documents/Repos/BulletHell/src/main.cpp",
+  "file": "/home/dylan/Documents/Repos/BulletHell/src/main.cpp",
+  "output": "CMakeFiles/MySDLApp.dir/src/main.cpp.o"
+},
+{
+  "directory": "/home/dylan/Documents/Repos/BulletHell/build",
+  "command": "/usr/bin/g++ -isystem /usr/include/SDL2 -g -o CMakeFiles/MySDLApp.dir/src/Polygon.cpp.o -c /home/dylan/Documents/Repos/BulletHell/src/Polygon.cpp",
+  "file": "/home/dylan/Documents/Repos/BulletHell/src/Polygon.cpp",
+  "output": "CMakeFiles/MySDLApp.dir/src/Polygon.cpp.o"
+},
+{
+  "directory": "/home/dylan/Documents/Repos/BulletHell/build",
+  "command": "/usr/bin/g++ -isystem /usr/include/SDL2 -g -o CMakeFiles/MySDLApp.dir/src/util.cpp.o -c /home/dylan/Documents/Repos/BulletHell/src/util.cpp",
+  "file": "/home/dylan/Documents/Repos/BulletHell/src/util.cpp",
+  "output": "CMakeFiles/MySDLApp.dir/src/util.cpp.o"
+},
+{
+  "directory": "/home/dylan/Documents/Repos/BulletHell/build",
+  "command": "/usr/bin/g++ -isystem /usr/include/SDL2 -g -o CMakeFiles/MySDLApp.dir/inc/imgui_impl_sdlrenderer2.cpp.o -c /home/dylan/Documents/Repos/BulletHell/inc/imgui_impl_sdlrenderer2.cpp",
+  "file": "/home/dylan/Documents/Repos/BulletHell/inc/imgui_impl_sdlrenderer2.cpp",
+  "output": "CMakeFiles/MySDLApp.dir/inc/imgui_impl_sdlrenderer2.cpp.o"
+},
+{
+  "directory": "/home/dylan/Documents/Repos/BulletHell/build",
+  "command": "/usr/bin/g++ -isystem /usr/include/SDL2 -g -o CMakeFiles/MySDLApp.dir/inc/imgui_impl_sdl2.cpp.o -c /home/dylan/Documents/Repos/BulletHell/inc/imgui_impl_sdl2.cpp",
+  "file": "/home/dylan/Documents/Repos/BulletHell/inc/imgui_impl_sdl2.cpp",
+  "output": "CMakeFiles/MySDLApp.dir/inc/imgui_impl_sdl2.cpp.o"
+}
+]
