@@ -1,7 +1,11 @@
 #pragma once
 #include <vector>
 #include <string>
+#ifdef ZIGBUILD
+#include <SDL2/SDL.h>
+#else
 #include <SDL.h>
+#endif
 #include "Inputs.h"
 #include "Vec2.h"
 
@@ -22,9 +26,9 @@ private:
 public:
     //Constructor
     Polygon(int x, int y){
-        points.push_back((Vec2){x - 20, y + 20});
-        points.push_back((Vec2){x - 20, y - 20});
-        points.push_back((Vec2){x + 20, y - 20});
+        points.push_back((Vec2){static_cast<float>(x - 20), static_cast<float>(y + 20)});
+        points.push_back((Vec2){static_cast<float>(x - 20), static_cast<float>(y - 20)});
+        points.push_back((Vec2){static_cast<float>(x + 20), static_cast<float>(y - 20)});
         selectedPoint = -1;
     }
     void updatePolygon(Inputs& i);

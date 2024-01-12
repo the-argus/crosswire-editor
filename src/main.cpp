@@ -1,10 +1,17 @@
+#ifdef ZIGBUILD
+#include <SDL2/SDL.h>
+#include <imgui.h>
+#include <imgui_impl_sdl2.h>
+#include <imgui_impl_sdlrenderer2.h>
+#else
 #include <SDL.h>
-#include <vector>
-#include <fstream>
-
 #include <imgui.h>
 #include "../inc/imgui_impl_sdl2.h"
 #include "../inc/imgui_impl_sdlrenderer2.h"
+#endif
+#include <vector>
+#include <fstream>
+
 #include "Inputs.h"
 #include "Polygons.h"
 #include "util.h"
