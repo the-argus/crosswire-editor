@@ -1,3 +1,5 @@
+#include <SDL2/SDL_image.h>
+
 #ifdef ZIGBUILD
 #include <SDL2/SDL.h>
 #include <imgui.h>
@@ -18,7 +20,7 @@
 #include "Room.h"
 
 
-Inputs getInputs() {
+Inputs getInputs(bool& done) {
     static bool mouseHeld = false;
     Inputs i = {0, 0, 0};
     SDL_GetMouseState(&i.mouseX, &i.mouseY);
@@ -27,21 +29,44 @@ Inputs getInputs() {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
         ImGui_ImplSDL2_ProcessEvent(&event);
-        if (event.type == SDL_KEYDOWN) {
-            switch (event.key.keysym.sym) {
-                case SDLK_n:     i.NewPolygon = 1;    break;
-                case SDLK_d:     i.DeletePoint = 1;   break;
-                case SDLK_DELETE:i.DeletePolygon = 1; break;
-                case SDLK_SPACE: i.AddPoint = 1;      break;
-                case SDLK_s:     i.SaveToFile = 1;    break;
-                case SDLK_RIGHT: i.IncrementSelection = 1; break;
-                case SDLK_LEFT:  i.DecrementSelection = 1; break;
-            }
-        } else if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
-            mouseHeld = true;
-            i.SelectPoint = 1;
-        } else if (event.type == SDL_MOUSEBUTTONUP && event.button.button == SDL_BUTTON_LEFT) {
-            mouseHeld = false;
+
+        switch (event.type) {
+            case SDL_KEYDOWN:
+                switch (event.key.keysym.sym) {
+                    case SDLK_n:     i.NewPolygon = 1;    break;
+                    case SDLK_d:     i.DeletePoint = 1;   break;
+                    case SDLK_DELETE:i.DeletePolygon = 1; break;
+                    case SDLK_SPACE: i.AddPoint = 1;      break;
+                    case SDLK_s:     i.SaveToFile = 1;    break;
+                    case SDLK_RIGHT: i.IncrementSelection = 1; break;
+                    case SDLK_LEFT:  i.DecrementSelection = 1; break;
+                    case SDLK_ESCAPE: 
+                        SDL_Quit();
+                        done = true;
+                        break;
+                }
+                break;
+            case SDL_MOUSEBUTTONDOWN:
+                if (event.button.button == SDL_BUTTON_LEFT) {
+                    mouseHeld = true;
+                    i.SelectPoint = 1;
+                }
+                break;
+            case SDL_MOUSEBUTTONUP:
+                if (event.button.button == SDL_BUTTON_LEFT) {
+                    mouseHeld = false;
+                }
+                break;
+            case SDL_WINDOWEVENT:
+                switch (event.window.event) {
+                    case SDL_WINDOWEVENT_CLOSE:
+                        SDL_Quit();
+                        done = true;
+                        break;
+                }
+                break;
+            default:
+                break;
         }
     }
     return i;
@@ -59,6 +84,11 @@ int main(int argc, char* argv[]){
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0)
     {
         printf("Error: %s\n", SDL_GetError());
+        return -1;
+    }
+
+    if (!IMG_Init(IMG_INIT_PNG)) {
+        printf("Unable to initialize SDL image.\n");
         return -1;
     }
 
@@ -105,7 +135,7 @@ int main(int argc, char* argv[]){
 
         ////////////////////////
         ///// Update Logic /////
-        Inputs i = getInputs();
+        Inputs i = getInputs(done);
         level.updateRoom(i);
         
 

@@ -55,6 +55,7 @@ pub fn build(b: *std.Build) !void {
     exe.linkLibCpp();
 
     exe.linkSystemLibrary("SDL2");
+    exe.linkSystemLibrary("SDL2_image");
 
     const imgui = b.dependency("imgui", .{
         .target = target,
