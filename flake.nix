@@ -47,6 +47,8 @@
             pkg-config
             sdl2
             zig_0_11
+            SDL2
+            SDL2_image
           ];
         };
 
