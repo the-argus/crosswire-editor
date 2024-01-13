@@ -19,6 +19,8 @@ const cpp_sources = &[_][]const u8{
     "src/main.cpp",
     "src/Polygon.cpp",
     "src/util.cpp",
+    "src/ImageSelector.cpp",
+    "src/Room.cpp",
 };
 
 const include_dirs = &[_][]const u8{

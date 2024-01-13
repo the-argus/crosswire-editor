@@ -15,9 +15,9 @@
 #include <fstream>
 
 #include "Inputs.h"
-#include "Polygons.h"
-#include "util.h"
 #include "Room.h"
+#include "ImageSelector.h"
+#include <optional>
 
 
 Inputs getInputs(bool& done) {
@@ -31,6 +31,10 @@ Inputs getInputs(bool& done) {
         ImGui_ImplSDL2_ProcessEvent(&event);
 
         switch (event.type) {
+            case SDL_QUIT:
+                SDL_Quit();
+                done = true;
+                break;
             case SDL_KEYDOWN:
                 switch (event.key.keysym.sym) {
                     case SDLK_n:     i.NewPolygon = 1;    break;
@@ -49,7 +53,7 @@ Inputs getInputs(bool& done) {
             case SDL_MOUSEBUTTONDOWN:
                 if (event.button.button == SDL_BUTTON_LEFT) {
                     mouseHeld = true;
-                    i.SelectPoint = 1;
+                    i.Select = 1;
                 }
                 break;
             case SDL_MOUSEBUTTONUP:
@@ -128,6 +132,14 @@ int main(int argc, char* argv[]){
     bool show_demo_window = true;
     bool show_another_window = true;
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+    // TODO: image selector should be destroyed before SDL_Quit so that the textures get freed at the right time
+    ImageSelector selector(renderer, "assets");
+    std::vector<std::string> image_names = selector.get_image_names();
+    std::optional<size_t> selected_image_index = {};
+    const char* turret_tracking_types[] {"Circle", "Tracking", "Straight Line"};
+    int selected_turret_tracking_type = 0;
+    cw::TurretPattern turret_tracking_type = cw::TurretPattern::Circle;
+    float selected_turret_fire_rate = 0.5f;
 
     // Main loop
     bool done = false;
@@ -146,24 +158,82 @@ int main(int argc, char* argv[]){
 
 
         //Draw Side Menu
-        ImGui::Begin("Polygon Selector", nullptr, ImGuiWindowFlags_NoMove);
-        ImGui::SetWindowPos(ImVec2(0, 0)); // Set position to the side of the screen
-        ImGui::SetWindowSize(ImVec2(300, 400)); // Set the size of the menu
+        {
+            ImGui::Begin("Tools", nullptr);
+            ImGui::SetWindowPos(ImVec2(0, 0)); // Set position to the side of the screen
+            ImGui::SetWindowSize(ImVec2(300, 400)); // Set the size of the menu
+            // ImGui::BeginChild("Polygon Selection", ImGui::GetContentRegionAvail(), true);
 
-        //Create a scrollable Region
-        ImGui::BeginChild("Polygon Selector", ImGui::GetContentRegionAvail(), true);
 
-        //Create list
-        for (int i = 0; i < level.getNumberOfPolygons(); i++) {
-            if (ImGui::Selectable(("Polygon " + std::to_string(i)).c_str())) {
-                //Update Selected Polygon
-                level.selectPolygon(i);
+            if (ImGui::BeginTabBar("Level Editing Tools")) {
+
+                if (ImGui::BeginTabItem("Polygon Selection")) {
+                    level.setCurrentTool(EditingTool::Polygons);
+                    //Create a scrollable Region
+                    //Create list
+                    for (int i = 0; i < level.getNumberOfPolygons(); i++) {
+                        if (ImGui::Selectable(("Polygon " + std::to_string(i)).c_str())) {
+                            //Update Selected Polygon
+                            level.selectPolygon(i);
+                        }
+                    }
+
+                    ImGui::EndTabItem();
+                }
+
+                if (ImGui::BeginTabItem("Image Palette")) {
+                    size_t index = 0;
+                    for (auto& name : image_names) {
+                        if (ImGui::Selectable(name.c_str())) {
+                            selected_image_index = index;
+                        }
+                        ++index;
+                    }
+
+                    level.setCurrentTool(EditingTool::Images);
+
+                    ImGui::EndTabItem();
+                } else {
+                    selected_image_index = {};
+                }
+
+                if (ImGui::BeginTabItem("Turret Tool")) {
+                    ImGui::BeginChild("Turret Characteristics", ImGui::GetContentRegionAvail(), true);
+
+                    bool changed = ImGui::Combo("Turret Tracking Type",
+                        &selected_turret_tracking_type,
+                        turret_tracking_types,
+                        IM_ARRAYSIZE(turret_tracking_types)
+                    );
+                    if (changed) {
+                        switch (selected_turret_tracking_type) {
+                            case 0:
+                                turret_tracking_type = cw::TurretPattern::Circle;
+                                break;
+                            case 1:
+                                turret_tracking_type = cw::TurretPattern::Tracking;
+                                break;
+                            case 2:
+                                turret_tracking_type = cw::TurretPattern::StraightLine;
+                                break;
+                        }
+                    }
+
+                    ImGui::SliderFloat("Fire Rate in Seconds", &selected_turret_fire_rate, 0.01f, 10.0f);
+                    // ImGui::BeginChild("Existing Turrets", ImGui::GetContentRegionAvail(), true);
+                    // ImGui::EndChild();
+
+                    ImGui::EndChild();
+                    ImGui::EndTabItem();
+                }
+
+                //End the scrollable region
+                // ImGui::EndChild();
+                ImGui::EndTabBar();
             }
-        }
 
-        //End the scrollable region
-        ImGui::EndChild();
-        ImGui::End();
+            ImGui::End();
+        }
 
         //Rendering
         ImGui::Render();

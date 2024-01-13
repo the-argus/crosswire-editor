@@ -63,7 +63,7 @@ void Polygon::updatePolygon(Inputs& i){
     if (i.AddPoint) {
         addPoint(i);
     }
-    if(i.SelectPoint){
+    if(i.Select){
         selectPoint(i);
     } else if(i.DragPoint){
         dragPoint(i);

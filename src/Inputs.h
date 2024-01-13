@@ -6,7 +6,7 @@ struct Inputs{
     union{
         uint16_t rawButtonInputs;
         struct{
-            uint16_t SelectPoint        : 1;
+            uint16_t Select             : 1;
             uint16_t DragPoint          : 1;
             uint16_t NewPolygon         : 1;
             uint16_t DeletePolygon      : 1;
