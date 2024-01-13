@@ -8,8 +8,9 @@ struct Inputs{
         struct{
             uint16_t Select             : 1;
             uint16_t DragPoint          : 1;
-            uint16_t NewPolygon         : 1;
-            uint16_t DeletePolygon      : 1;
+            uint16_t New                : 1;
+            uint16_t Delete             : 1;
+            uint16_t Cancel             : 1;
             uint16_t AddPoint           : 1;
             uint16_t DeletePoint        : 1;
             uint16_t SaveToFile         : 1;

@@ -37,17 +37,14 @@ Inputs getInputs(bool& done) {
                 break;
             case SDL_KEYDOWN:
                 switch (event.key.keysym.sym) {
-                    case SDLK_n:     i.NewPolygon = 1;    break;
+                    case SDLK_n:     i.New = 1;    break;
                     case SDLK_d:     i.DeletePoint = 1;   break;
-                    case SDLK_DELETE:i.DeletePolygon = 1; break;
+                    case SDLK_DELETE:i.Delete = 1; break;
                     case SDLK_SPACE: i.AddPoint = 1;      break;
                     case SDLK_s:     i.SaveToFile = 1;    break;
                     case SDLK_RIGHT: i.IncrementSelection = 1; break;
                     case SDLK_LEFT:  i.DecrementSelection = 1; break;
-                    case SDLK_ESCAPE: 
-                        SDL_Quit();
-                        done = true;
-                        break;
+                    case SDLK_ESCAPE:i.Cancel = 1; break;
                 }
                 break;
             case SDL_MOUSEBUTTONDOWN:
@@ -138,8 +135,18 @@ int main(int argc, char* argv[]){
     std::optional<size_t> selected_image_index = {};
     const char* turret_tracking_types[] {"Circle", "Tracking", "Straight Line"};
     int selected_turret_tracking_type = 0;
-    cw::TurretPattern turret_tracking_type = cw::TurretPattern::Circle;
     float selected_turret_fire_rate = 0.5f;
+    bool select_induvidual_vertices = true;
+    bool window_active = false;
+
+    const char* terrain_types[] {"Ditch", "Obstacle"};
+    int selected_terrain_type = 0;
+
+    std::optional<cw::SerializeResultCode> lasterr = {};
+
+    bool overwrite_files = false;
+
+    size_t selected_turret = 0;
 
     // Main loop
     bool done = false;
@@ -148,7 +155,9 @@ int main(int argc, char* argv[]){
         ////////////////////////
         ///// Update Logic /////
         Inputs i = getInputs(done);
-        level.updateRoom(i);
+        if (!window_active) {
+            level.updateRoom(i);
+        }
         
 
         //Start Dear IMGUI Frame
@@ -159,9 +168,10 @@ int main(int argc, char* argv[]){
 
         //Draw Side Menu
         {
-            ImGui::Begin("Tools", nullptr);
-            ImGui::SetWindowPos(ImVec2(0, 0)); // Set position to the side of the screen
-            ImGui::SetWindowSize(ImVec2(300, 400)); // Set the size of the menu
+            ImGui::Begin("Tools");
+            window_active = ImGui::IsWindowFocused();
+            // ImGui::SetWindowPos(ImVec2(0, 0)); // Set position to the side of the screen
+            // ImGui::SetWindowSize(ImVec2(300, 400)); // Set the size of the menu
             // ImGui::BeginChild("Polygon Selection", ImGui::GetContentRegionAvail(), true);
 
 
@@ -169,10 +179,32 @@ int main(int argc, char* argv[]){
 
                 if (ImGui::BeginTabItem("Polygon Selection")) {
                     level.setCurrentTool(EditingTool::Polygons);
+
+                    ImGui::SeparatorText("Options");
+                    ImGui::Checkbox("Move Induvidual Vertices", &select_induvidual_vertices);
+                    bool changed = ImGui::Combo("Terrain Type",
+                        &selected_terrain_type,
+                        terrain_types,
+                        IM_ARRAYSIZE(terrain_types)
+                    );
+                    if (changed) {
+                        switch (selected_terrain_type) {
+                            case 0:
+                                level.setTerrainType(cw::TerrainType::Ditch);
+                                break;
+                            case 1:
+                                level.setTerrainType(cw::TerrainType::Obstacle);
+                                break;
+                            default:
+                                ImGui::Text("Unhandled terrain type selected.");
+                                break;
+                        }
+                    }
                     //Create a scrollable Region
                     //Create list
+                    ImGui::SeparatorText("Existing Polygons");
                     for (int i = 0; i < level.getNumberOfPolygons(); i++) {
-                        if (ImGui::Selectable(("Polygon " + std::to_string(i)).c_str())) {
+                        if (ImGui::Selectable(level.getDisplayNameAtIndex(i).c_str())) {
                             //Update Selected Polygon
                             level.selectPolygon(i);
                         }
@@ -182,7 +214,9 @@ int main(int argc, char* argv[]){
                 }
 
                 if (ImGui::BeginTabItem("Image Palette")) {
+                    level.setCurrentTool(EditingTool::Images);
                     size_t index = 0;
+                    ImGui::SeparatorText("Available Images");
                     for (auto& name : image_names) {
                         if (ImGui::Selectable(name.c_str())) {
                             selected_image_index = index;
@@ -190,15 +224,15 @@ int main(int argc, char* argv[]){
                         ++index;
                     }
 
-                    level.setCurrentTool(EditingTool::Images);
-
                     ImGui::EndTabItem();
                 } else {
                     selected_image_index = {};
                 }
 
                 if (ImGui::BeginTabItem("Turret Tool")) {
+                    level.setCurrentTool(EditingTool::Turrets);
                     ImGui::BeginChild("Turret Characteristics", ImGui::GetContentRegionAvail(), true);
+                    ImGui::SeparatorText("Turret Characteristics");
 
                     bool changed = ImGui::Combo("Turret Tracking Type",
                         &selected_turret_tracking_type,
@@ -208,28 +242,92 @@ int main(int argc, char* argv[]){
                     if (changed) {
                         switch (selected_turret_tracking_type) {
                             case 0:
-                                turret_tracking_type = cw::TurretPattern::Circle;
+                                level.setTurretPattern( cw::TurretPattern::Circle);
                                 break;
                             case 1:
-                                turret_tracking_type = cw::TurretPattern::Tracking;
+                                level.setTurretPattern(cw::TurretPattern::Tracking);
                                 break;
                             case 2:
-                                turret_tracking_type = cw::TurretPattern::StraightLine;
+                                level.setTurretPattern(cw::TurretPattern::StraightLine);
                                 break;
                         }
                     }
 
-                    ImGui::SliderFloat("Fire Rate in Seconds", &selected_turret_fire_rate, 0.01f, 10.0f);
-                    // ImGui::BeginChild("Existing Turrets", ImGui::GetContentRegionAvail(), true);
-                    // ImGui::EndChild();
+                    if (ImGui::SliderFloat("Fire Rate in Seconds", &selected_turret_fire_rate, 0.01f, 10.0f)) {
+                        level.setTurretFireRate(selected_turret_fire_rate);
+                    }
+
+                    ImGui::SeparatorText("Existing Turrets");
+
+                    size_t index = 0;
+                    for (const auto& turret : level.getTurrets()) {
+                        auto name = "Turret " + std::to_string(index);
+                        if (ImGui::Selectable(name.c_str())) {
+                            level.selectTurret(index);
+                            selected_turret = index;
+                        }
+                        if (index == selected_turret) {
+                            auto& turret = level.getTurret(index);
+                            float direction = atan2(turret.direction.y, turret.direction.x);
+                            ImGui::SliderFloat("Fire Rate", &turret.fireRateSeconds, 0.01f, 10.0f);
+                            if (ImGui::SliderFloat("Direction", &direction, 0.01f, 10.0f)) {
+                                turret.direction.x = cos(direction);
+                                turret.direction.y = sin(direction);
+                            }
+                        }
+                        ++index;
+                    }
 
                     ImGui::EndChild();
+                    ImGui::EndTabItem();
+                }
+
+                if (ImGui::BeginTabItem("Build Site Tool")) {
+                    level.setCurrentTool(EditingTool::BuildSites);
+                    ImGui::SeparatorText("Existing Build Sites");
                     ImGui::EndTabItem();
                 }
 
                 //End the scrollable region
                 // ImGui::EndChild();
                 ImGui::EndTabBar();
+            }
+
+            ImGui::SeparatorText("Level Save Dialog");
+
+            static std::array<char, 1024> buf;
+            ImGui::InputText("Level Name", buf.data(), buf.size());
+            buf[1023] = 0; // always null terminated, idk if imgui does this
+            
+            ImGui::Checkbox("Overwrite files when saving?", &overwrite_files);
+
+            if (ImGui::Button("Save")) {
+                if (std::strlen(buf.data()) != 0) {
+                    lasterr = level.trySerialize(buf.data(), overwrite_files);
+                }
+            }
+
+            if (lasterr) {
+                switch (lasterr.value()) {
+                    case cw::SerializeResultCode::Okay:
+                        ImGui::Text("Saved file successfully.");
+                        break;
+                    case cw::SerializeResultCode::FileExists:
+                        ImGui::Text("File already exists.");
+                        break;
+                    case cw::SerializeResultCode::TryAgain:
+                        ImGui::Text("Temporary failure, try again.");
+                        break;
+                    case cw::SerializeResultCode::AlreadyOpen:
+                        ImGui::Text("Device or resource busy (file already open?)");
+                        break;
+                    case cw::SerializeResultCode::PathTooLong:
+                        ImGui::Text("Given path is too long.");
+                        break;
+                    default:
+                        ImGui::Text("Unknown file save error.");
+                        break;
+                }
             }
 
             ImGui::End();
