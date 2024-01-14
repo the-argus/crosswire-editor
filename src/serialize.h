@@ -441,20 +441,28 @@ inline DeserializeResultCode deserialize(const char *filename, Level *out) {
 
   for (size_t i = 0; i < num_terrains; ++i) {
     auto &modifiable = const_cast<TerrainEntry &>(out->terrains[i]);
-    modifiable.verts =
+    auto modifiable_verts =
         std::span(new Vec2[polygons[i].size()], polygons[i].size());
     modifiable.type = types[i];
-    std::memcpy((void *)out->terrains[i].verts.data(), polygons[i].data(),
-                polygons[i].size());
+    size_t index = 0;
+    for (const auto &poly : polygons[i]) {
+      modifiable_verts[index] = poly;
+      ++index;
+    }
+    modifiable.verts = modifiable_verts;
   }
 
   for (size_t i = 0; i < num_images; ++i) {
     auto &modifiable = const_cast<Image &>(out->images[i]);
     modifiable.data = image_datas[i];
-    modifiable.filename =
+    auto modifiable_filename =
         std::span(new char[filenames[i].size()], filenames[i].size());
-    std::memcpy((void *)out->images[i].filename.data(), filenames[i].data(),
-                filenames[i].size());
+    size_t index = 0;
+    for (const auto &c : filenames[i]) {
+      modifiable_filename[index] = c;
+      ++index;
+    }
+    modifiable.filename = modifiable_filename;
   }
 
   std::fclose(levelfile);
