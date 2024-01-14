@@ -8,6 +8,7 @@
 #endif
 #include "Inputs.h"
 #include "Vec2.h"
+#include <span>
 
 const float SELECT_DISTANCE = 25.0f;
 
@@ -25,6 +26,15 @@ private:
 
 public:
     inline constexpr const std::vector<Vec2>& getPoints() const {return points;}
+    Polygon(const std::span<const Vec2>& vertices) {
+        points.resize(vertices.size());
+        // copy the vertices
+        for (const auto& vertex : vertices) {
+            points.push_back(vertex);
+        }
+        selectedPoint = -1;
+    }
+
     //Constructor
     Polygon(int x, int y){
         points.push_back((Vec2){static_cast<float>(x - 20), static_cast<float>(y + 20)});

@@ -256,6 +256,7 @@ enum class DeserializeResultCode : uint8_t {
   EarlyEOF,
   UnknownReadError,
   ShouldNeverHappenUnlessPosixIsBroken,
+  NoSuchImageFile,
 };
 
 /// Reads some level data from a file, allocate data using malloc. Returned item

@@ -1,4 +1,5 @@
 #pragma once
+#include "ImageSelector.h"
 #include "Inputs.h"
 #include "Polygons.h"
 #include "serialize.h"
@@ -54,6 +55,8 @@ private:
   cw::TerrainType terrain_type = cw::TerrainType::Ditch;
   cw::TurretPattern turret_pattern = cw::TurretPattern::Circle;
   float turret_fire_rate = 0.5f;
+
+  std::vector<std::string> filenamesLoadedFromFile;
 
 public:
   void setCurrentTool(EditingTool tool);
@@ -126,6 +129,9 @@ public:
 
   cw::SerializeResultCode trySerialize(const char *levelname,
                                        bool overwrite) const;
+
+  cw::DeserializeResultCode tryDeserialize(const char *levelname,
+                                           const ImageSelector &image_selector);
 
   // Constructor
   Room();

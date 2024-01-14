@@ -1,4 +1,5 @@
 #include <SDL2/SDL_image.h>
+#include <iostream>
 
 #ifdef ZIGBUILD
 #include <SDL2/SDL.h>
@@ -141,6 +142,7 @@ int main(int argc, char* argv[]){
     int selected_terrain_type = 0;
 
     std::optional<cw::SerializeResultCode> lasterr = {};
+    std::optional<cw::DeserializeResultCode> lastdeserializeerr = {};
 
     bool overwrite_files = false;
 
@@ -333,15 +335,17 @@ int main(int argc, char* argv[]){
 
             ImGui::SeparatorText("Level Save Dialog");
 
-            static std::array<char, 1024> buf;
-            ImGui::InputText("Level Name", buf.data(), buf.size());
-            buf[1023] = 0; // always null terminated, idk if imgui does this
+            {
+                static std::array<char, 1024> buf = {0};
+                ImGui::InputText("Level Name", buf.data(), buf.size());
+                buf[1023] = 0; // always null terminated, idk if imgui does this
 
-            ImGui::Checkbox("Overwrite files when saving?", &overwrite_files);
+                ImGui::Checkbox("Overwrite files when saving?", &overwrite_files);
 
-            if (ImGui::Button("Save")) {
-                if (std::strlen(buf.data()) != 0) {
-                    lasterr = level.trySerialize(buf.data(), overwrite_files);
+                if (ImGui::Button("Save")) {
+                    if (std::strlen(buf.data()) != 0) {
+                        lasterr = level.trySerialize(buf.data(), overwrite_files);
+                    }
                 }
             }
 
@@ -361,6 +365,43 @@ int main(int argc, char* argv[]){
                         break;
                     case cw::SerializeResultCode::PathTooLong:
                         ImGui::Text("Given path is too long.");
+                        break;
+                    default:
+                        ImGui::Text("Unknown file save error.");
+                        break;
+                }
+            }
+
+            ImGui::SeparatorText("Load level");
+
+            {
+                static std::array<char, 1024> load_buf = {0};
+                ImGui::InputText("Level", load_buf.data(), load_buf.size());
+                load_buf[1023] = 0; // always null terminated, idk if imgui does this
+
+                ImGui::Text("Warning: loading overwrites all current editor data.");
+                if (ImGui::Button("Load") && strlen(load_buf.data()) != 0) {
+                    lastdeserializeerr = level.tryDeserialize(load_buf.data(), selector);
+                }
+            }
+
+            if (lastdeserializeerr) {
+                switch (lastdeserializeerr.value()) {
+                    case cw::DeserializeResultCode::Okay:
+                        ImGui::Text("Loaded file successfully.");
+                        break;
+                    case cw::DeserializeResultCode::EarlyEOF:
+                    case cw::DeserializeResultCode::InvalidHeader:
+                        ImGui::Text("File parsing error, corruption or old version?");
+                        break;
+                    case cw::DeserializeResultCode::TryAgain:
+                        ImGui::Text("Temporary failure, try again.");
+                        break;
+                    case cw::DeserializeResultCode::AlreadyOpen:
+                        ImGui::Text("Device or resource busy (file already open?)");
+                        break;
+                    case cw::DeserializeResultCode::NoSuchImageFile:
+                        ImGui::Text("The file contains references to image files which cannot be found in the assets folder.");
                         break;
                     default:
                         ImGui::Text("Unknown file save error.");

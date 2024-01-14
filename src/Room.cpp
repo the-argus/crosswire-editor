@@ -224,6 +224,96 @@ cw::SerializeResultCode Room::trySerialize(const char *levelname,
   return cw::serialize("levels", levelname, overwrite, level);
 }
 
+cw::DeserializeResultCode
+Room::tryDeserialize(const char *levelname,
+                     const ImageSelector &image_selector) {
+  std::string filename = "levels/" + std::string(levelname) + ".cwl";
+  cw::Level level;
+  auto res = cw::deserialize(filename.c_str(), &level);
+  if (res != decltype(res)::Okay) {
+    return res;
+  }
+
+  // deserialization successful, but do the image files exist?
+  std::vector<cw::Image> newSerializableImages;
+  std::vector<SDL_Texture *> newRuntimeImages;
+  std::vector<std::string> filenames;
+  newSerializableImages.reserve(level.images.size());
+  newRuntimeImages.reserve(level.images.size());
+  {
+    filenames.reserve(image_selector.size());
+    for (size_t i = 0; i < image_selector.size(); ++i) {
+      filenames.push_back(image_selector.get_filename(i));
+    }
+
+    std::array<char, 1024> buf;
+    for (const cw::Image &image : level.images) {
+      std::memcpy(buf.data(), image.filename.data(), image.filename.size());
+      buf[image.filename.size()] = 0; // null terminate
+
+      std::string comparable(buf.data());
+      SDL_Texture *runtimeData = nullptr;
+      size_t found_index;
+      for (const auto &filename : filenames) {
+        if (filename == comparable) {
+          runtimeData = image_selector.get(found_index);
+          break;
+        }
+        ++found_index;
+      }
+
+      if (!runtimeData)
+        return cw::DeserializeResultCode::NoSuchImageFile;
+
+      newRuntimeImages.push_back(runtimeData);
+      newSerializableImages.push_back(cw::Image{
+          // BUG: possible bug happens if a std::string inside filenames
+          // reallocates
+          .filename = std::span(filenames[found_index].data(),
+                                filenames[found_index].size()),
+          .data = image.data,
+      });
+    }
+  }
+
+  // successfully read level into memory, now destroy existing editor data
+  Areas = {};
+  terrain_types = {};
+  currentPolygon = {};
+  currentBuildSite = {};
+  currentTurret = {};
+  currentImage = {};
+  selectedImage = {};
+  selectedImageFilename = {};
+  serializableImageData = {};
+  runtimeImageData = {};
+  turrets = {};
+  buildSites = {};
+  buildSiteSelection = {};
+  // don't reset update func, its okay for the editor to remember which
+  // tool its using
+  filenamesLoadedFromFile = std::move(filenames);
+  serializableImageData = std::move(newSerializableImages);
+  runtimeImageData = std::move(newRuntimeImages);
+
+  turrets.resize(level.turrets.size());
+  std::memcpy(turrets.data(), level.turrets.data(),
+              sizeof(level.turrets[0]) * level.turrets.size());
+  player_spawn = level.player_spawn.position;
+
+  for (const auto &entry : level.terrains) {
+    terrain_types.push_back(entry.type);
+    Areas.push_back(Polygon(entry.verts));
+  }
+
+  buildSites.resize(level.build_sites.size());
+  std::memcpy(buildSites.data(), level.build_sites.data(),
+              sizeof(level.build_sites[0]) * level.build_sites.size());
+
+  // return okay
+  return res;
+}
+
 std::string Room::getDisplayNameAtIndex(size_t index) const {
   if (index >= Areas.size())
     return "";
