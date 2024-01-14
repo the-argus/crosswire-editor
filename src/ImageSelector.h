@@ -17,6 +17,8 @@ public:
 
   /// Get a texture for an image file at a given index
   SDL_Texture *get(size_t index) const noexcept;
+  
+  const char *get_filename(size_t index) const noexcept;
 
   /// The number of textures in the container
   constexpr inline size_t size() const noexcept { return textures.size(); }

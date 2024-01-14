@@ -23,6 +23,9 @@ private:
   std::optional<size_t> currentPolygon;
   std::optional<size_t> currentBuildSite;
   std::optional<size_t> currentTurret;
+  std::optional<size_t> currentImage;
+  std::optional<SDL_Texture *> selectedImage;
+  std::optional<const char *> selectedImageFilename;
 
   // these two should always be the same length
   std::vector<cw::Image> serializableImageData;
@@ -31,11 +34,19 @@ private:
   std::vector<cw::Turret> turrets;
 
   std::vector<cw::BuildSite> buildSites;
+  Vec2 player_spawn = {100, 100};
+
+  struct SelectedBuildSiteInfo {
+    size_t index;
+    bool is_a;
+  };
+  std::optional<SelectedBuildSiteInfo> buildSiteSelection;
 
   void updateRoomPolygonTool(Inputs i);
   void updateRoomBuildSiteTool(Inputs i);
   void updateRoomTurretTool(Inputs i);
   void updateRoomImageTool(Inputs i);
+  void createImageAt(const char *filename, SDL_Texture *tex, float x, float y);
 
   std::optional<std::function<void(Inputs)>> updateFunc;
   EditingTool currentTool = EditingTool::Polygons;
@@ -54,8 +65,36 @@ public:
     turret_pattern = pattern;
   }
 
+  // TODO: getter and setter? cringe
   inline constexpr void setTurretFireRate(float rate) {
     turret_fire_rate = rate;
+  }
+  inline constexpr float getTurretFireRate() { return turret_fire_rate; }
+
+  inline constexpr void setCurrentImage(size_t index) {
+    if (index >= runtimeImageData.size())
+      return;
+    currentImage = index;
+  }
+
+  inline constexpr void setCurrentBuildSite(size_t index) {
+    if (index >= buildSites.size()) {
+      return;
+    }
+    currentBuildSite = index;
+  }
+
+  inline constexpr size_t getNumBuildSites() const { return buildSites.size(); }
+
+  // change the characteristics of the next image placed
+  inline constexpr void changeImagePlacementOptions(const char *filename,
+                                                    SDL_Texture *tex) {
+    selectedImage = tex;
+    selectedImageFilename = filename;
+  }
+
+  inline constexpr const std::vector<cw::Image> &getImages() const {
+    return serializableImageData;
   }
 
   inline constexpr const std::vector<cw::Turret> &getTurrets() const {
@@ -67,10 +106,22 @@ public:
     return turrets[index];
   }
 
+  // TODO: naming convention on this is inconsistent, should be setCurrentTurret
   inline constexpr void selectTurret(size_t index) {
     if (index >= turrets.size())
       return;
     currentTurret = index;
+  }
+
+  inline constexpr void setTerrainTypeFor(size_t index, cw::TerrainType type) {
+    if (index >= terrain_types.size()) {
+      return;
+    }
+    terrain_types[index] = type;
+  }
+  inline constexpr cw::TerrainType getTerrainTypeFor(size_t index) {
+    assert(index < terrain_types.size());
+    return terrain_types[index];
   }
 
   cw::SerializeResultCode trySerialize(const char *levelname,

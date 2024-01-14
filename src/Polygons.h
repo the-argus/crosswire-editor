@@ -24,6 +24,7 @@ private:
     void deletePoint(Inputs& i);
 
 public:
+    inline constexpr const std::vector<Vec2>& getPoints() const {return points;}
     //Constructor
     Polygon(int x, int y){
         points.push_back((Vec2){static_cast<float>(x - 20), static_cast<float>(y + 20)});

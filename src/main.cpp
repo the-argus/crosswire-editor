@@ -132,10 +132,8 @@ int main(int argc, char* argv[]){
     // TODO: image selector should be destroyed before SDL_Quit so that the textures get freed at the right time
     ImageSelector selector(renderer, "assets");
     std::vector<std::string> image_names = selector.get_image_names();
-    std::optional<size_t> selected_image_index = {};
     const char* turret_tracking_types[] {"Circle", "Tracking", "Straight Line"};
     int selected_turret_tracking_type = 0;
-    float selected_turret_fire_rate = 0.5f;
     bool select_induvidual_vertices = true;
     bool window_active = false;
 
@@ -181,32 +179,38 @@ int main(int argc, char* argv[]){
                     level.setCurrentTool(EditingTool::Polygons);
 
                     ImGui::SeparatorText("Options");
-                    ImGui::Checkbox("Move Induvidual Vertices", &select_induvidual_vertices);
-                    bool changed = ImGui::Combo("Terrain Type",
-                        &selected_terrain_type,
-                        terrain_types,
-                        IM_ARRAYSIZE(terrain_types)
-                    );
-                    if (changed) {
-                        switch (selected_terrain_type) {
-                            case 0:
-                                level.setTerrainType(cw::TerrainType::Ditch);
-                                break;
-                            case 1:
-                                level.setTerrainType(cw::TerrainType::Obstacle);
-                                break;
-                            default:
-                                ImGui::Text("Unhandled terrain type selected.");
-                                break;
+                    ImGui::Checkbox("Move Induvidual Vertices (does nothing rn)", &select_induvidual_vertices);
+
+                    auto terrain_type_combo_box = [&](const char* label, int original_index) -> std::optional<int> {
+                        int terrain_type = original_index;
+                        bool changed = ImGui::Combo(label,
+                            &terrain_type,
+                            terrain_types,
+                            IM_ARRAYSIZE(terrain_types)
+                        );
+                        if (changed) {
+                            return terrain_type;
                         }
+                        return {};
+                    };
+
+                    if (auto res = terrain_type_combo_box("Next Terrain Type", selected_terrain_type)) {
+                        level.setTerrainType(cw::TerrainType(res.value()));
+                        selected_terrain_type = res.value();
                     }
-                    //Create a scrollable Region
-                    //Create list
+
+                    static std::optional<size_t> selected_polygon = {};
                     ImGui::SeparatorText("Existing Polygons");
                     for (int i = 0; i < level.getNumberOfPolygons(); i++) {
                         if (ImGui::Selectable(level.getDisplayNameAtIndex(i).c_str())) {
                             //Update Selected Polygon
                             level.selectPolygon(i);
+                            selected_polygon = i;
+                        }
+                        if (selected_polygon == i) {
+                            if (auto res = terrain_type_combo_box("Terrain Type", (int)level.getTerrainTypeFor(i))) {
+                                level.setTerrainTypeFor(i, cw::TerrainType(res.value()));
+                            }
                         }
                     }
 
@@ -219,14 +223,22 @@ int main(int argc, char* argv[]){
                     ImGui::SeparatorText("Available Images");
                     for (auto& name : image_names) {
                         if (ImGui::Selectable(name.c_str())) {
-                            selected_image_index = index;
+                            level.changeImagePlacementOptions(selector.get_filename(index), selector.get(index));
+                        }
+                        ++index;
+                    }
+                    
+                    ImGui::SeparatorText("Existing Images");
+
+                    index = 0;
+                    for (const auto& image : level.getImages()) {
+                        if (ImGui::Selectable(image.filename.data())) {
+                            level.setCurrentImage(index);
                         }
                         ++index;
                     }
 
                     ImGui::EndTabItem();
-                } else {
-                    selected_image_index = {};
                 }
 
                 if (ImGui::BeginTabItem("Turret Tool")) {
@@ -234,27 +246,41 @@ int main(int argc, char* argv[]){
                     ImGui::BeginChild("Turret Characteristics", ImGui::GetContentRegionAvail(), true);
                     ImGui::SeparatorText("Turret Characteristics");
 
-                    bool changed = ImGui::Combo("Turret Tracking Type",
-                        &selected_turret_tracking_type,
-                        turret_tracking_types,
-                        IM_ARRAYSIZE(turret_tracking_types)
-                    );
-                    if (changed) {
-                        switch (selected_turret_tracking_type) {
-                            case 0:
-                                level.setTurretPattern( cw::TurretPattern::Circle);
-                                break;
-                            case 1:
-                                level.setTurretPattern(cw::TurretPattern::Tracking);
-                                break;
-                            case 2:
-                                level.setTurretPattern(cw::TurretPattern::StraightLine);
-                                break;
+                    // turret response
+                    using tres = std::pair<cw::TurretPattern, int>;
+                    auto tracking_type_combo_box = [&](const char* name, int initial)-> std::optional<std::pair<cw::TurretPattern, int>>{
+                        int index = initial;
+                        bool changed = ImGui::Combo(name,
+                            &index,
+                            turret_tracking_types,
+                            IM_ARRAYSIZE(turret_tracking_types)
+                        );
+                        if (changed) {
+                            switch (index) {
+                                case 0:
+                                    return tres{cw::TurretPattern::Circle, index};
+                                    break;
+                                case 1:
+                                    return tres{cw::TurretPattern::Tracking, index};
+                                    break;
+                                case 2:
+                                    return tres{cw::TurretPattern::StraightLine, index};
+                                    break;
+                            }
                         }
+                        return {};
+                    };
+
+                    if (auto tracking = tracking_type_combo_box("Next Turret Tracking Type", selected_turret_tracking_type)) {
+                        level.setTurretPattern(tracking.value().first);
+                        selected_turret_tracking_type = tracking.value().second;
                     }
 
-                    if (ImGui::SliderFloat("Fire Rate in Seconds", &selected_turret_fire_rate, 0.01f, 10.0f)) {
-                        level.setTurretFireRate(selected_turret_fire_rate);
+                    {
+                        float rate = level.getTurretFireRate();
+                        if (ImGui::SliderFloat("Fire Rate in Seconds", &rate, 0.01f, 10.0f)) {
+                            level.setTurretFireRate(rate);
+                        }
                     }
 
                     ImGui::SeparatorText("Existing Turrets");
@@ -274,6 +300,13 @@ int main(int argc, char* argv[]){
                                 turret.direction.x = cos(direction);
                                 turret.direction.y = sin(direction);
                             }
+                            int tracking_index =
+                                (turret.pattern == cw::TurretPattern::Circle) ? (0)
+                                : (turret.pattern == cw::TurretPattern::Tracking ? (1)
+                                : (2));
+                            if (auto tracking = tracking_type_combo_box("Tracking Type", tracking_index)) {
+                                turret.pattern = tracking.value().first;
+                            }
                         }
                         ++index;
                     }
@@ -285,6 +318,11 @@ int main(int argc, char* argv[]){
                 if (ImGui::BeginTabItem("Build Site Tool")) {
                     level.setCurrentTool(EditingTool::BuildSites);
                     ImGui::SeparatorText("Existing Build Sites");
+                    for (size_t i = 0; i < level.getNumBuildSites(); ++i) {
+                        if (ImGui::Selectable(("Build Site " + std::to_string(i)).c_str())) {
+                            level.setCurrentBuildSite(i);
+                        }
+                    }
                     ImGui::EndTabItem();
                 }
 
@@ -298,7 +336,7 @@ int main(int argc, char* argv[]){
             static std::array<char, 1024> buf;
             ImGui::InputText("Level Name", buf.data(), buf.size());
             buf[1023] = 0; // always null terminated, idk if imgui does this
-            
+
             ImGui::Checkbox("Overwrite files when saving?", &overwrite_files);
 
             if (ImGui::Button("Save")) {
@@ -338,9 +376,8 @@ int main(int argc, char* argv[]){
         SDL_RenderSetScale(renderer, io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
         SDL_SetRenderDrawColor(renderer, (Uint8)(clear_color.x * 255), (Uint8)(clear_color.y * 255), (Uint8)(clear_color.z * 255), (Uint8)(clear_color.w * 255));
         SDL_RenderClear(renderer);
-        ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData());
-
         level.drawRoom(renderer);
+        ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData());
         SDL_RenderPresent(renderer);
     }
 

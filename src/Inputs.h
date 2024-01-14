@@ -16,6 +16,7 @@ struct Inputs{
             uint16_t SaveToFile         : 1;
             uint16_t IncrementSelection : 1;
             uint16_t DecrementSelection : 1;
+            uint16_t SetPlayerSpawn     : 1;
         };
     };
 };

@@ -76,3 +76,7 @@ std::vector<std::string> ImageSelector::get_image_names() const noexcept {
 SDL_Texture *ImageSelector::get(size_t index) const noexcept {
   return textures[index].tex;
 }
+
+const char *ImageSelector::get_filename(size_t index) const noexcept {
+  return textures[index].filename.c_str();
+}

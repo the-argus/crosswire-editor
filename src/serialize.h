@@ -18,17 +18,18 @@ namespace cw {
 #define CROSSWIRE_LEVEL_FILE_EXTENSION "cwl"
 
 struct TerrainEntry {
-  std::span<Vec2> verts;
+  std::span<const Vec2> verts;
   TerrainType type;
 };
 
 // trivially copyable portion of Image
 struct ImageData {
   Vec2 position;
+  float rotation;
 };
 
 struct Image {
-  std::span<char> filename; // string view
+  std::span<const char> filename; // string view
   ImageData data;
 };
 
@@ -58,10 +59,10 @@ struct BuildSite {
 
 struct Level {
   PlayerSpawnPoint player_spawn;
-  std::span<TerrainEntry> terrains;
-  std::span<Image> images;
-  std::span<BuildSite> build_sites;
-  std::span<Turret> turrets;
+  std::span<const TerrainEntry> terrains;
+  std::span<const Image> images;
+  std::span<const BuildSite> build_sites;
+  std::span<const Turret> turrets;
   /// this is true for levels returned by deserialize. otherwise leave it as
   /// false
   bool needs_freed = false;
@@ -109,7 +110,7 @@ inline SerializeResultCode serialize(const char *folder, const char *levelname,
   if (bytes > buf.size())
     return SerializeResultCode::PathTooLong;
 
-  if (!overwrite && access(buf.data(), F_OK)) {
+  if (!overwrite && !access(buf.data(), F_OK)) {
     return SerializeResultCode::FileExists;
   }
 
@@ -440,18 +441,20 @@ inline DeserializeResultCode deserialize(const char *filename, Level *out) {
   out->build_sites = std::span(sites, num_build_sites);
 
   for (size_t i = 0; i < num_terrains; ++i) {
-    out->terrains[i].verts =
+    auto &modifiable = const_cast<TerrainEntry &>(out->terrains[i]);
+    modifiable.verts =
         std::span(new Vec2[polygons[i].size()], polygons[i].size());
-    out->terrains[i].type = types[i];
-    std::memcpy(out->terrains[i].verts.data(), polygons[i].data(),
+    modifiable.type = types[i];
+    std::memcpy((void *)out->terrains[i].verts.data(), polygons[i].data(),
                 polygons[i].size());
   }
 
   for (size_t i = 0; i < num_images; ++i) {
-    out->images[i].data = image_datas[i];
-    out->images[i].filename =
+    auto &modifiable = const_cast<Image &>(out->images[i]);
+    modifiable.data = image_datas[i];
+    modifiable.filename =
         std::span(new char[filenames[i].size()], filenames[i].size());
-    std::memcpy(out->images[i].filename.data(), filenames[i].data(),
+    std::memcpy((void *)out->images[i].filename.data(), filenames[i].data(),
                 filenames[i].size());
   }
 
