@@ -438,6 +438,7 @@ inline DeserializeResultCode deserialize(const char *filename, Level *out) {
   out->terrains = std::span(new TerrainEntry[types.size()], types.size());
   out->images = std::span(new Image[image_datas.size()], image_datas.size());
   out->build_sites = std::span(sites, num_build_sites);
+  out->turrets = std::span(turrets, num_turrets);
 
   for (size_t i = 0; i < num_terrains; ++i) {
     auto &modifiable = const_cast<TerrainEntry &>(out->terrains[i]);
