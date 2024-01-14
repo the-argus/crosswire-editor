@@ -135,10 +135,8 @@ inline SerializeResultCode serialize(const char *folder, const char *levelname,
   // first write level header
   static constexpr LevelHeader header;
   {
-    size_t count = std::strlen(header.header_text);
-    size_t num_written =
-        std::fwrite(header.header_text, sizeof(char), count, levelfile);
-    if (num_written < count) {
+    if (std::fwrite(header.header_text, 1, sizeof(header.header_text),
+                    levelfile) != sizeof(header.header_text)) {
       std::fclose(levelfile);
       return SerializeResultCode::FileWriteErr;
     }
