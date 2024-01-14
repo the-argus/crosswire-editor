@@ -296,9 +296,10 @@ Room::tryDeserialize(const char *levelname,
   serializableImageData = std::move(newSerializableImages);
   runtimeImageData = std::move(newRuntimeImages);
 
-  turrets.resize(level.turrets.size());
-  std::memcpy(turrets.data(), level.turrets.data(),
-              sizeof(level.turrets[0]) * level.turrets.size());
+  turrets.reserve(level.turrets.size());
+  for (const auto &turret : level.turrets) {
+    turrets.push_back(turret);
+  }
   player_spawn = level.player_spawn.position;
 
   for (const auto &entry : level.terrains) {
@@ -306,9 +307,10 @@ Room::tryDeserialize(const char *levelname,
     Areas.push_back(Polygon(entry.verts));
   }
 
-  buildSites.resize(level.build_sites.size());
-  std::memcpy(buildSites.data(), level.build_sites.data(),
-              sizeof(level.build_sites[0]) * level.build_sites.size());
+  buildSites.reserve(level.build_sites.size());
+  for (const auto &site : level.build_sites) {
+    buildSites.push_back(site);
+  }
 
   // return okay
   return res;
