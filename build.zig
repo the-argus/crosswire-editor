@@ -85,6 +85,10 @@ pub fn build(b: *std.Build) !void {
         exe.addCSourceFiles(try sources.toOwnedSlice(), flags_owned);
     }
 
+    b.getInstallStep().dependOn(&b.addInstallHeaderFile("src/serialize.h", "crosswire_editor/serialize.h").step);
+    b.getInstallStep().dependOn(&b.addInstallHeaderFile("src/Vec2.h", "crosswire_editor/Vec2.h").step);
+    b.getInstallStep().dependOn(&b.addInstallHeaderFile("src/terrain.h", "crosswire_editor/terrain.h").step);
+
     // add "zig build run"
     {
         const run_cmd = b.addRunArtifact(exe);
