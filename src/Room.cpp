@@ -253,7 +253,7 @@ Room::tryDeserialize(const char *levelname,
 
       std::string comparable(buf.data());
       SDL_Texture *runtimeData = nullptr;
-      size_t found_index;
+      size_t found_index = 0;
       for (const auto &filename : filenames) {
         if (filename == comparable) {
           runtimeData = image_selector.get(found_index);
