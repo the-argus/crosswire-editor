@@ -420,6 +420,7 @@ void Room::drawRoom(SDL_Renderer *renderer) {
         dest.h += 20;
         SDL_RenderDrawRect(renderer, &dest);
       }
+      ++index;
     }
   }
 
