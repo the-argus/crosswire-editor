@@ -200,6 +200,45 @@ void Room::updateRoomImageTool(Inputs i) {
                                   currentImage.value());
     }
   }
+
+  if (i.DragPoint) {
+    if (currentImage) {
+      Vec2 &pos = serializableImageData[currentImage.value()].data.position;
+      float w = abs(pos.x - i.mouseX);
+      float h = abs(pos.y - i.mouseY);
+      float dist = sqrt(w * w + h * h);
+      // TODO: use AABB collision here with width and height of image, once i
+      // figure out how to get that
+      if (dist < 100) {
+        pos.x = i.mouseX;
+        pos.y = i.mouseY;
+      }
+    }
+  } else if (i.Select) {
+    if (serializableImageData.size() == 0)
+      return;
+
+    std::optional<size_t> best_image_index = {};
+    // choose nearest image
+    float best_distance = INFINITY;
+    size_t index = 0;
+    for (const auto &image : serializableImageData) {
+      const auto &pos = image.data.position;
+      float w = abs(pos.x - i.mouseX);
+      float h = abs(pos.y - i.mouseY);
+      float dist = sqrt(w * w + h * h);
+      if (dist < best_distance && dist < 100) {
+        best_distance = dist;
+        best_image_index = index;
+      }
+      ++index;
+    }
+
+    if (!best_image_index)
+      return;
+
+    currentImage = best_image_index;
+  }
 }
 
 cw::SerializeResultCode Room::trySerialize(const char *levelname,
