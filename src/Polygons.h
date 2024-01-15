@@ -27,7 +27,7 @@ private:
 public:
     inline constexpr const std::vector<Vec2>& getPoints() const {return points;}
     Polygon(const std::span<const Vec2>& vertices) {
-        points.resize(vertices.size());
+        points.reserve(vertices.size());
         // copy the vertices
         for (const auto& vertex : vertices) {
             points.push_back(vertex);
